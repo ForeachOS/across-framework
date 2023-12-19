@@ -62,6 +62,7 @@
 		<!-- Overriden from spring-boot-dependencies -->
 		<maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
 		<maven-failsafe-plugin.version>3.2.2</maven-failsafe-plugin.version>
+		<maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
 		<!-- https://github.com/liquibase/liquibase/issues/1639 -->
 		<liquibase.version>4.17.0</liquibase.version>
 		<!-- Across properties -->
@@ -144,15 +145,6 @@
 					</exclusion>
 				</exclusions>
 			</dependency>
-
-			<!-- Overrides for backwards compatibility -->
-<!--
-			<dependency>
-				<groupId>com.oracle</groupId>
-				<artifactId>ojdbc6</artifactId>
-				<version>${oracle-ojdbc6.version}</version>
-			</dependency>
--->
 
 			<!-- Foreach commons -->
 			<dependency>
@@ -259,9 +251,65 @@
 
 	<profiles>
 		<profile>
-			<id>sonatype</id>
+			<id>deploy</id>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<failOnError>false</failOnError>
+							<doclint>none</doclint>
+						</configuration>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<phase>prepare-package</phase>
+								<inherited>true</inherited>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>aggregate</id>
+								<phase>prepare-package</phase>
+								<inherited>true</inherited>
+								<goals>
+									<goal>aggregate-no-fork</goal>
+								</goals>
+								<configuration>
+									<skip>${maven.javadoc.skip}</skip>
+									<reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
+									<destDir>${project.version}/javadoc</destDir>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<inherited>true</inherited>
+						<configuration>
+							<finalName>${project.artifactId}</finalName>
+							<!-- assemblies are only made for javadoc, so skip if we are skipping javadoc -->
+							<skipAssembly>${maven.javadoc.skip}</skipAssembly>
+							<!-- Place it under root/target folder -->
+							<outputDirectory>../target</outputDirectory>
+							<descriptors>
+								<descriptor>site.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<executions>
+							<execution>
+								<id>make-assembly</id>
+								<!-- this is used for inheritance merges -->
+								<phase>package</phase>
+								<!-- bind to the packaging phase -->
+								<goals>
+									<goal>single</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
@@ -283,6 +331,9 @@
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+		<profile>
+			<id>sonatype</id>
 			<distributionManagement>
 				<snapshotRepository>
 					<id>sonatype</id>
@@ -298,29 +349,6 @@
 		</profile>
 		<profile>
 			<id>across</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-gpg-plugin</artifactId>
-						<version>${maven-gpg-plugin.version}</version>
-						<executions>
-							<execution>
-								<id>sign-artifacts</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>sign</goal>
-								</goals>
-								<configuration>
-									<keyname>${env.ACROSS_GPG_KEY_NAME}</keyname>
-									<passphrase>${env.ACROSS_GPG_PASSPHRASE}</passphrase>
-									<defaultKeyring>true</defaultKeyring>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
 			<distributionManagement>
 				<repository>
 					<id>across</id>
@@ -335,4 +363,5 @@
 			</distributionManagement>
 		</profile>
 	</profiles>
+
 </project>

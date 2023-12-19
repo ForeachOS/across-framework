@@ -179,12 +179,12 @@ itest:postgresql:
 deploy:foreach:
   stage: deploy
   before_script:
-    - apt update
-    - apt -y install gpg
+    - apt-get update
+    - apt-get -y install gpg
     - gpg --pinentry-mode loopback --passphrase $ACROSS_GPG_PASSPHRASE --import $ACROSS_GPG_PRIVATE_KEY
     - gpg --list-keys
   script:
-    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml -Pacross deploy -DskipTests
+    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml -Pdeploy -Pacross deploy -DskipTests
 #  only:
 #    variables:
 #      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

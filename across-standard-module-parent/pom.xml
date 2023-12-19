@@ -183,6 +183,7 @@
                     </archive>
                 </configuration>
             </plugin>
+<!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -214,6 +215,7 @@
                     </execution>
                 </executions>
             </plugin>
+-->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -232,14 +234,15 @@
                     </execution>
                 </executions>
             </plugin>
+<!--
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <inherited>true</inherited>
                 <configuration>
                     <finalName>${project.artifactId}</finalName>
-                    <!-- assemblies are only made for javadoc, so skip if we are skipping javadoc -->
+                    &lt;!&ndash; assemblies are only made for javadoc, so skip if we are skipping javadoc &ndash;&gt;
                     <skipAssembly>${maven.javadoc.skip}</skipAssembly>
-                    <!-- Place it under root/target folder -->
+                    &lt;!&ndash; Place it under root/target folder &ndash;&gt;
                     <outputDirectory>../target</outputDirectory>
                     <descriptors>
                         <descriptor>site.xml</descriptor>
@@ -248,15 +251,17 @@
                 <executions>
                     <execution>
                         <id>make-assembly</id>
-                        <!-- this is used for inheritance merges -->
+                        &lt;!&ndash; this is used for inheritance merges &ndash;&gt;
                         <phase>package</phase>
-                        <!-- bind to the packaging phase -->
+                        &lt;!&ndash; bind to the packaging phase &ndash;&gt;
                         <goals>
                             <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
+-->
+<!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -273,6 +278,8 @@
                     </dependency>
                 </dependencies>
             </plugin>
+-->
+<!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -288,6 +295,7 @@
                     </execution>
                 </executions>
             </plugin>
+-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
