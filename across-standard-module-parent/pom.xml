@@ -183,39 +183,6 @@
                     </archive>
                 </configuration>
             </plugin>
-<!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <failOnError>false</failOnError>
-                    <doclint>none</doclint>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <phase>prepare-package</phase>
-                        <inherited>true</inherited>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>aggregate</id>
-                        <phase>prepare-package</phase>
-                        <inherited>true</inherited>
-                        <goals>
-                            <goal>aggregate-no-fork</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${maven.javadoc.skip}</skip>
-                            <reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
-                            <destDir>${project.version}/javadoc</destDir>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
--->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -234,33 +201,6 @@
                     </execution>
                 </executions>
             </plugin>
-<!--
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <inherited>true</inherited>
-                <configuration>
-                    <finalName>${project.artifactId}</finalName>
-                    &lt;!&ndash; assemblies are only made for javadoc, so skip if we are skipping javadoc &ndash;&gt;
-                    <skipAssembly>${maven.javadoc.skip}</skipAssembly>
-                    &lt;!&ndash; Place it under root/target folder &ndash;&gt;
-                    <outputDirectory>../target</outputDirectory>
-                    <descriptors>
-                        <descriptor>site.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        &lt;!&ndash; this is used for inheritance merges &ndash;&gt;
-                        <phase>package</phase>
-                        &lt;!&ndash; bind to the packaging phase &ndash;&gt;
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
--->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
