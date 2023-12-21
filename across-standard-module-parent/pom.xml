@@ -311,7 +311,7 @@
                         <parent>resolve</parent>
                         <properties>keep</properties>
                         <repositories>remove</repositories>
-                        <profiles>remove</profiles>
+                        <profiles>keep</profiles>
                         <modules>remove</modules>
                         <build>keep</build>
                     </pomElements>
@@ -351,5 +351,71 @@
 	        </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <failOnError>false</failOnError>
+                            <doclint>none</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>prepare-package</phase>
+                                <inherited>true</inherited>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>aggregate</id>
+                                <phase>prepare-package</phase>
+                                <inherited>true</inherited>
+                                <goals>
+                                    <goal>aggregate-no-fork</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${maven.javadoc.skip}</skip>
+                                    <reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
+                                    <destDir>${project.version}/javadoc</destDir>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <finalName>${project.artifactId}</finalName>
+                            <!-- assemblies are only made for javadoc, so skip if we are skipping javadoc -->
+                            <skipAssembly>${maven.javadoc.skip}</skipAssembly>
+                            <!-- Place it under root/target folder -->
+                            <outputDirectory>../target</outputDirectory>
+                            <descriptors>
+                                <descriptor>site.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <!-- this is used for inheritance merges -->
+                                <phase>package</phase>
+                                <!-- bind to the packaging phase -->
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

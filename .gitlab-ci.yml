@@ -62,6 +62,8 @@ cache:
       junit:
         - '**/target/surefire-reports/TEST-*.xml'
         - '**/target/failsafe-reports/TEST-*.xml'
+#    paths:
+#      - '**/jacoco.exec'
 #  except:
 #    variables:
 #      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -92,7 +94,7 @@ verify:jdk8:
   script:
     # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
     - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf
-    - 'mvn $MAVEN_CLI_OPTS test-compile failsafe:integration-test failsafe:verify -DacrossTest.datasource="$ACROSS_TEST_DATASOURCE" -Dmaven.javadoc.skip=true'
+    - 'mvn $MAVEN_CLI_OPTS test-compile failsafe:integration-test failsafe:verify -DacrossTest.datasource="$ACROSS_TEST_DATASOURCE"'
   artifacts:
     when: always
     reports:
@@ -184,7 +186,7 @@ deploy:foreach:
     - gpg --pinentry-mode loopback --passphrase $ACROSS_GPG_PASSPHRASE --import $ACROSS_GPG_PRIVATE_KEY
     - gpg --list-keys
   script:
-    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml -Pdeploy -Pacross deploy -DskipTests
+    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml --activate-profiles deploy,across deploy -DskipTests
 #  only:
 #    variables:
 #      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
