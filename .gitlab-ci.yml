@@ -1,6 +1,10 @@
 variables:
+
+  MAVEN_REPO_DIR: $CI_PROJECT_DIR/.m2/repository
+
   # `showDateTime` will show the passed time in milliseconds. You need to specify `--batch-mode` to make this work.
   MAVEN_OPTS: >-
+    -Xmx256m
     -Dhttps.protocols=TLSv1.2
     -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository
     -Dorg.slf4j.simpleLogger.showDateTime=true
@@ -33,6 +37,19 @@ variables:
     GRANT SELECT ON SYS.DBA_RECYCLEBIN TO AXT;
 
 
+# I think this example workflow is exactly what we need:
+# https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
+# This runs:
+# - Branch pipelines when a merge request is not open for the branch.
+# - Merge request pipelines when a merge request is open for the branch.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+
 # This template uses the latest Maven 3 release, e.g., 3.8.6, and OpenJDK 8 (LTS)
 # for verifying and deploying images
 # Maven 3.8.x REQUIRES HTTPS repositories.
@@ -45,8 +62,7 @@ image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-8
 # increasing, consider adding `-Dmaven.install.skip=true` to `MAVEN_OPTS` or in `.mvn/maven.config`
 cache:
   paths:
-    - .m2/repository
-
+    - $MAVEN_REPO_DIR
 
 # For merge requests do not `deploy` but only run `verify`.
 # See https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
@@ -54,14 +70,13 @@ cache:
   stage: test
   script:
     # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
-    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf
+    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf || echo "No snapshots to delete"
     - 'mvn $MAVEN_CLI_OPTS verify'
   artifacts:
     when: always
     reports:
       junit:
         - '**/target/surefire-reports/TEST-*.xml'
-        - '**/target/failsafe-reports/TEST-*.xml'
 #    paths:
 #      - '**/jacoco.exec'
 #  except:
@@ -93,13 +108,12 @@ verify:jdk8:
   stage: test
   script:
     # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
-    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf
+    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf || echo "No snapshots to delete"
     - 'mvn $MAVEN_CLI_OPTS test-compile failsafe:integration-test failsafe:verify -DacrossTest.datasource="$ACROSS_TEST_DATASOURCE"'
   artifacts:
     when: always
     reports:
       junit:
-        - '**/target/surefire-reports/TEST-*.xml'
         - '**/target/failsafe-reports/TEST-*.xml'
 
 itest:h2:

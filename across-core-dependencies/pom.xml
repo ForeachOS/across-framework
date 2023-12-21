@@ -60,8 +60,8 @@
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<!-- Overriden from spring-boot-dependencies -->
-		<maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
-		<maven-failsafe-plugin.version>3.2.2</maven-failsafe-plugin.version>
+		<maven-surefire-plugin.version>3.2.3</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.2.3</maven-failsafe-plugin.version>
 		<maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
 		<!-- https://github.com/liquibase/liquibase/issues/1639 -->
 		<liquibase.version>4.17.0</liquibase.version>
