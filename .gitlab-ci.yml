@@ -91,114 +91,114 @@ cache:
 #    variables:
 #      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-#verify:jdk8:
+verify:jdk8:
+  extends:
+    - .verify
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-8
+
+#verify:jdk11:
 #  extends:
 #    - .verify
-#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-8
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-11
 #
-##verify:jdk11:
-##  extends:
-##    - .verify
-##  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-11
-##
-##verify:jdk17:
-##  extends:
-##    - .verify
-##  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-17
-##
-##verify:jdk21:
-##  extends:
-##    - .verify
-##  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-21
-#
-#
-#.itest:
-#  stage: test
-#  script:
-#    # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
-#    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf || echo "No snapshots to delete"
-#    - 'mvn $MAVEN_CLI_OPTS test-compile failsafe:integration-test failsafe:verify -DacrossTest.datasource="$ACROSS_TEST_DATASOURCE"'
-#  artifacts:
-#    when: always
-#    reports:
-#      junit:
-#        - '**/target/failsafe-reports/TEST-*.xml'
-#
-#itest:h2:
+#verify:jdk17:
 #  extends:
-#    - .itest
-#  variables:
-#    ACROSS_TEST_DATASOURCE: h2
+#    - .verify
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-17
 #
-#itest:mssql:
+#verify:jdk21:
 #  extends:
-#    - .itest
-#  variables:
-#    ACROSS_TEST_DATASOURCE: mssql
-#  services:
-#    - name: mcr.microsoft.com/mssql/server:2017-latest
-#      alias: 'mssql'
-#      variables:
-#        ACCEPT_EULA: Y
-#        MSSQL_SA_PASSWORD: across_tEst
-#        MSSQL_PID: Developer
-#
-#itest:mysql:
-#  extends:
-#    - .itest
-#  variables:
-#    ACROSS_TEST_DATASOURCE: mysql
-#  services:
-#    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/mysql:8.0'
-#      alias: mysql
-#      variables:
-#        MYSQL_ROOT_PASSWORD: ''
-#        MYSQL_DATABASE: axt
-#        MYSQL_USER: axt
-#        MYSQL_PASSWORD: across_test
-#        MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
-#
-#itest:oracle:
-#  extends:
-#    - .itest
-#  variables:
-#    ACROSS_TEST_DATASOURCE: oracle
-#  services:
-#    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/gvenzl/oracle-xe:18.4.0-slim' # This what testcontainers 1.18.1 uses
-#      alias: 'oracle'
-#      variables:
-#        ORACLE_ALLOW_REMOTE: 'true'
-#        ORACLE_ENABLE_XDB: 'true'
-#        # IT IS SAID THAT THIS IS MORE PERFORMANT IN DOCKER
-#        ORACLE_DISABLE_ASYNCH_IO: 'true'
-#        ORACLE_PASSWORD: across_test
-#      # You cannot mount volumes in a service container, this is a workaround for that:
-#      # Solution inspired by: https://stackoverflow.com/questions/72201392/mounting-a-volume-for-a-gitlab-service
-#      # Doesn't work: the /docker-entrypoint-initdb.d directory doesn't exist in the image, and creating it gives:
-#      #   mkdir: cannot create directory '/docker-entrypoint-initdb.d/': Permission denied
-#      # However: /container-entrypoint-initdb.d does exist! See: https://github.com/gvenzl/oci-oracle-xe/issues/108
-#      # entrypoint: ['/bin/bash', "-c", 'echo "c" > /container-entrypoint-initdb.d/init.sql && container-entrypoint.sh']
-#      entrypoint:
-#        - '/bin/bash'
-#        - '-c'
-#        - |
-#          echo "$ORACLE_INIT_SQL" > /container-entrypoint-initdb.d/init.sql
-#          cat /container-entrypoint-initdb.d/*
-#          wc -l /container-entrypoint-initdb.d/*
-#          container-entrypoint.sh
-#
-#itest:postgresql:
-#  extends:
-#    - .itest
-#  variables:
-#    ACROSS_TEST_DATASOURCE: postgres
-#  services:
-#    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:14.8'
-#      alias: postgres
-#      variables:
-#        POSTGRES_DB: axt
-#        POSTGRES_USER: axt
-#        POSTGRES_PASSWORD: across_test
+#    - .verify
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-21
+
+
+.itest:
+  stage: test
+  script:
+    # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
+    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf || echo "No snapshots to delete"
+    - 'mvn $MAVEN_CLI_OPTS test-compile failsafe:integration-test failsafe:verify -DacrossTest.datasource="$ACROSS_TEST_DATASOURCE"'
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - '**/target/failsafe-reports/TEST-*.xml'
+
+itest:h2:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: h2
+
+itest:mssql:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: mssql
+  services:
+    - name: mcr.microsoft.com/mssql/server:2017-latest
+      alias: 'mssql'
+      variables:
+        ACCEPT_EULA: Y
+        MSSQL_SA_PASSWORD: across_tEst
+        MSSQL_PID: Developer
+
+itest:mysql:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: mysql
+  services:
+    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/mysql:8.0'
+      alias: mysql
+      variables:
+        MYSQL_ROOT_PASSWORD: ''
+        MYSQL_DATABASE: axt
+        MYSQL_USER: axt
+        MYSQL_PASSWORD: across_test
+        MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+
+itest:oracle:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: oracle
+  services:
+    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/gvenzl/oracle-xe:18.4.0-slim' # This what testcontainers 1.18.1 uses
+      alias: 'oracle'
+      variables:
+        ORACLE_ALLOW_REMOTE: 'true'
+        ORACLE_ENABLE_XDB: 'true'
+        # IT IS SAID THAT THIS IS MORE PERFORMANT IN DOCKER
+        ORACLE_DISABLE_ASYNCH_IO: 'true'
+        ORACLE_PASSWORD: across_test
+      # You cannot mount volumes in a service container, this is a workaround for that:
+      # Solution inspired by: https://stackoverflow.com/questions/72201392/mounting-a-volume-for-a-gitlab-service
+      # Doesn't work: the /docker-entrypoint-initdb.d directory doesn't exist in the image, and creating it gives:
+      #   mkdir: cannot create directory '/docker-entrypoint-initdb.d/': Permission denied
+      # However: /container-entrypoint-initdb.d does exist! See: https://github.com/gvenzl/oci-oracle-xe/issues/108
+      # entrypoint: ['/bin/bash', "-c", 'echo "c" > /container-entrypoint-initdb.d/init.sql && container-entrypoint.sh']
+      entrypoint:
+        - '/bin/bash'
+        - '-c'
+        - |
+          echo "$ORACLE_INIT_SQL" > /container-entrypoint-initdb.d/init.sql
+          cat /container-entrypoint-initdb.d/*
+          wc -l /container-entrypoint-initdb.d/*
+          container-entrypoint.sh
+
+itest:postgresql:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: postgres
+  services:
+    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:14.8'
+      alias: postgres
+      variables:
+        POSTGRES_DB: axt
+        POSTGRES_USER: axt
+        POSTGRES_PASSWORD: across_test
 
 deploy:foreach:
   stage: deploy
@@ -208,7 +208,7 @@ deploy:foreach:
     - gpg --pinentry-mode loopback --passphrase $ACROSS_GPG_PASSPHRASE --import $ACROSS_GPG_PRIVATE_KEY
     - gpg --list-keys
   script:
-    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml --activate-profiles deploy,across deploy -DskipTests -X
+    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml --activate-profiles deploy,across deploy -DskipTests
 #  only:
 #    variables:
 #      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
