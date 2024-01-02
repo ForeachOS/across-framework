@@ -1,0 +1,7 @@
+include:
+  - project: 'antwerpen/across/across-development'
+    file:
+      - '/gitlab-ci/common.gitlab-ci.yml'
+      - '/gitlab-ci/unit-tests.gitlab-ci.yml'
+      - '/gitlab-ci/integration-tests.gitlab-ci.yml'
+      - '/gitlab-ci/deploy.gitlab-ci.yml'

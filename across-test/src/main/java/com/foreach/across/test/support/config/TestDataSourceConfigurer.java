@@ -21,14 +21,12 @@ import com.foreach.across.core.database.DatabaseInfo;
 import com.foreach.across.core.installers.InstallerAction;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.EnvironmentAware;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.*;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
@@ -52,21 +50,31 @@ import java.util.UUID;
  * If no specific datasource is set, this configuration will ensure that a HSQL memory database is used.
  * If the {@link AcrossContext} already has a datasource configured, it will kept.
  * </p>
+ * <p>
+ * To use this in IntelliJ, go the across-bamboo-specs repository, and run:
+ * <pre>
+ *     docker-compose -f docker-dbs.yml up <DATABASE>
+ * </pre>
  *
  * @author Arne Vandamme
  * @since 1.1.2
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Configuration
-@PropertySource(value = "file:${user.home}/dev-configs/across-test.properties", ignoreResourceNotFound = true)
+@PropertySources(value = {
+		// last one wins
+		@PropertySource(value = "classpath:across-test.properties"),
+		@PropertySource(value = "file:${user.home}/dev-configs/across-test.properties", ignoreResourceNotFound = true),
+}
+)
 public class TestDataSourceConfigurer implements EnvironmentAware, AcrossContextConfigurer
 {
 	private static final Logger LOG = LoggerFactory.getLogger( TestDataSourceConfigurer.class );
 
 	private Environment environment;
-	private String dataSourceName = "/hsql-mem/ax-" + UUID.randomUUID().toString();
+	private String dataSourceName = "/hsql-mem/ax-" + UUID.randomUUID();
 
-	public void setEnvironment( Environment environment ) {
+	public void setEnvironment( @NotNull Environment environment ) {
 		this.environment = environment;
 	}
 

@@ -159,60 +159,14 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <archive>
                         <manifest>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                         </manifest>
-                        <manifestEntries>
-                            <Build-Time>${maven.build.timestamp}</Build-Time>
-                        </manifestEntries>
                     </archive>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <failOnError>false</failOnError>
-                    <doclint>none</doclint>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <phase>prepare-package</phase>
-                        <inherited>true</inherited>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>aggregate</id>
-                        <phase>prepare-package</phase>
-                        <inherited>true</inherited>
-                        <goals>
-                            <goal>aggregate-no-fork</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${maven.javadoc.skip}</skip>
-                            <reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
-                            <destDir>${project.version}/javadoc</destDir>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -233,69 +187,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <inherited>true</inherited>
-                <configuration>
-                    <finalName>${project.artifactId}</finalName>
-                    <!-- assemblies are only made for javadoc, so skip if we are skipping javadoc -->
-                    <skipAssembly>${maven.javadoc.skip}</skipAssembly>
-                    <!-- Place it under root/target folder -->
-                    <outputDirectory>../target</outputDirectory>
-                    <descriptors>
-                        <descriptor>site.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <!-- this is used for inheritance merges -->
-                        <phase>package</phase>
-                        <!-- bind to the packaging phase -->
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-engine</artifactId>
-                        <version>${junit-jupiter.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.junit.vintage</groupId>
-                        <artifactId>junit-vintage-engine</artifactId>
-                        <version>${junit-jupiter.version}</version>
-                    </dependency>
-                </dependencies>
-                </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <!--
-                <version>${maven-surefire-plugin.version}</version>
-                <configuration>
-                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                    <systemPropertyVariables>
-                        <spring.main.allow-circular-references>true</spring.main.allow-circular-references>
-                        <spring.mvc.pathmatch.matching-strategy>ant-path-matcher</spring.mvc.pathmatch.matching-strategy>
-                    </systemPropertyVariables>
-                </configuration>
-                -->
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
                 <inherited>false</inherited>
@@ -310,7 +201,7 @@
                         <parent>resolve</parent>
                         <properties>keep</properties>
                         <repositories>remove</repositories>
-                        <profiles>remove</profiles>
+                        <profiles>keep</profiles>
                         <modules>remove</modules>
                         <build>keep</build>
                     </pomElements>
@@ -350,5 +241,116 @@
 	        </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <configuration>
+                            <skipSource>${maven.deploy.skip}</skipSource>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>${maven.deploy.skip}</skip>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>delombok</goal>
+                                </goals>
+                                <configuration>
+                                    <addOutputDirectory>false</addOutputDirectory>
+                                    <outputDirectory>target/delombok</outputDirectory>
+                                    <sourceDirectory>src/main/java</sourceDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <skip>${maven.deploy.skip}</skip>
+                            <failOnError>false</failOnError>
+                            <doclint>none</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>prepare-package</phase>
+                                <inherited>true</inherited>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <sourcepath>
+                                        target/delombok;target/generated-sources
+                                    </sourcepath>
+                                </configuration>
+                            </execution>
+                            <!--
+                            <execution>
+                                <id>aggregate</id>
+                                <phase>prepare-package</phase>
+                                <inherited>true</inherited>
+                                <goals>
+                                    <goal>aggregate-no-fork</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${maven.javadoc.skip}</skip>
+                                    <reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
+                                    <destDir>${project.version}/javadoc</destDir>
+                                </configuration>
+                            </execution>
+                            -->
+                        </executions>
+                    </plugin>
+                    <!--
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <finalName>${project.artifactId}</finalName>
+                            &lt;!&ndash; assemblies are only made for javadoc, so skip if we are skipping javadoc &ndash;&gt;
+                            <skipAssembly>${maven.javadoc.skip}</skipAssembly>
+                            &lt;!&ndash; Place it under root/target folder &ndash;&gt;
+                            <outputDirectory>../target</outputDirectory>
+                            <descriptors>
+                                <descriptor>site.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                &lt;!&ndash; this is used for inheritance merges &ndash;&gt;
+                                <phase>package</phase>
+                                &lt;!&ndash; bind to the packaging phase &ndash;&gt;
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    -->
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

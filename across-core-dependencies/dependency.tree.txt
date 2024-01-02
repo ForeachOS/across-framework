@@ -1,0 +1,1 @@
+com.foreach.across:across-core-dependencies:pom:5.3-SNAPSHOT

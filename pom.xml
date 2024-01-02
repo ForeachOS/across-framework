@@ -199,119 +199,14 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<configuration>
-					<failOnError>false</failOnError>
-					<doclint>none</doclint>
-				</configuration>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>aggregate</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>aggregate-no-fork</goal>
-						</goals>
-						<configuration>
-							<reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
-							<destDir>${project.version}/javadoc</destDir>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>
 					<archive>
 						<manifest>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 						</manifest>
-						<manifestEntries>
-							<Build-Time>${maven.build.timestamp}</Build-Time>
-						</manifestEntries>
 					</archive>
 				</configuration>
-			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<inherited>false</inherited>
-				<configuration>
-					<finalName>${project.artifactId}</finalName>
-					<skipAssembly>${maven.javadoc.skip}</skipAssembly>
-					<descriptors>
-						<descriptor>assembly.xml</descriptor>
-					</descriptors>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<!-- this is used for inheritance merges -->
-						<phase>package</phase>
-						<!-- bind to the packaging phase -->
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-failsafe-plugin</artifactId>
-				<!--
-				<configuration>
-					<reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-					<systemPropertyVariables>
-						<spring.main.allow-circular-references>true</spring.main.allow-circular-references>
-						<spring.mvc.pathmatch.matching-strategy>ant-path-matcher</spring.mvc.pathmatch.matching-strategy>
-					</systemPropertyVariables>
-				</configuration>
-				-->
-				<executions>
-					<execution>
-						<goals>
-							<goal>integration-test</goal>
-							<goal>verify</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<dependencies>
-					<dependency>
-						<groupId>org.junit.jupiter</groupId>
-						<artifactId>junit-jupiter-engine</artifactId>
-						<version>${junit-jupiter.version}</version>
-					</dependency>
-				</dependencies>
-<!--
-				<configuration>
-					<systemPropertyVariables>
-						<spring.main.allow-circular-references>true</spring.main.allow-circular-references>
-						<spring.mvc.pathmatch.matching-strategy>ant-path-matcher</spring.mvc.pathmatch.matching-strategy>
-					</systemPropertyVariables>
-				</configuration>
--->
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -319,4 +214,151 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>deploy</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<!--
+					Getting *aggregated* delomboked javadocs to work in combination with a tar assembly is impossible,
+					at least if you want that tar file associated to the across root project, so it gets deployed to
+					Maven Central (free long-term storage). The reason is that for this to work, the delombok should
+					execute first in the child projects, after which the aggregate runs in the parent, but that's impossible:
+					https://stackoverflow.com/questions/39027585/maven-multi-module-project-execute-parent-after-child
+					Presumably it should be possible to publish the aggregated javadocs in an assembly,
+					using reporting/plugins instead of build/plugins, but then you loose the option to deploy to a Maven repository:
+					- https://maven.apache.org/plugins/maven-javadoc-plugin/examples/aggregate.html
+					- https://maven.apache.org/guides/mini/guide-configuring-plugins.html#introduction
+					Another alternative is to use a dedicated 'distribution' module which depends on all other (published) modules in the repository:
+					The imageserver repository seems to have done something like that in the past.
+					https://maven.apache.org/plugins/maven-javadoc-plugin/examples/aggregate-dependency-sources.html
+					We could use GitHub actions to do react only to tags, and publish the released tar.gz file as a GitHub release ...
+					GitHub actions: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions
+					2000 min/month will be more than sufficient, but 500MB storage for artifacts isn't much (should definitely switch to .tar.gz then).
+					OTOH: https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases#storage-and-bandwidth-quotas
+					Basically no limits ...
+					So it's basically a choice between correct javadocs, or long-term storage.
+					I'd prefer to go for correctness and simplicity:
+					- correctness: the Javadocs should include the Lombok-generated symbols
+					- correctness: Maven Central requires a javadoc jar for each jar artifact:
+					  https://central.sonatype.org/publish/requirements/#supply-javadoc-and-sources
+					- simplicity: A single place in the code when delomboked javadocs are configured
+					  (or max twice with the complicated configuration in across-framework).
+					- simplicity: The maven-assembly-plugin is not known for simplicity.
+					This option would mean:
+					- javadoc jar for each jar module
+					- no assembly at all
+					Or we could go for compatibility:
+					- For across-base/across-framework: publish an assembly with aggregated javadocs, but not delomboked.
+					  E.g. this has 3 getters, whereas there are really 6:
+					  https://docs.across.dev/across/5.1.0.RELEASE/javadoc/com/foreach/across/core/context/bootstrap/AcrossBootstrapTimer.html
+					  https://repo1.maven.org/maven2/com/foreach/across/across-base/5.1.0.RELEASE/ has a tarball for that.
+					- Modules used to have the -project published to Maven Central, which had a distribution tarball with javadocs:
+					  https://repo1.maven.org/maven2/com/foreach/across/modules/admin-web-module-project/3.2.0.RELEASE/
+					  More recent releases no longer the -project published, only the modules themselves, which do also include a tarball:
+					  https://repo1.maven.org/maven2/com/foreach/across/modules/admin-web-module/4.1.0.RELEASE/
+					  This is published on the docs website:
+					  https://docs.across.dev/across-standard-modules/AdminWebModule/4.1.0.RELEASE/javadoc/
+					  Previously, some of the modules used delombok for javadocs, others didn't.
+					  That's fixed in this commit.
+					Conclusion: I went for a mix of compatibility and simplicity:
+					- Framework:
+					  - Attached javadoc jar is now based on delombok'd sources.
+					  - There is a still an attached across-base-distribution with aggregated javadocs, but it's still not based on delombok'd sources,
+					    since that's impossible.
+					- Modules:
+					  - The attached javadoc jar are now systematically based on delombok'd sources.
+					  - The per-module attached tar distribution has been removed, since it's redundant with the javadoc jar.
+					-->
+					<plugin>
+						<groupId>org.projectlombok</groupId>
+						<artifactId>lombok-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>delombok</goal>
+								</goals>
+								<configuration>
+									<addOutputDirectory>false</addOutputDirectory>
+									<outputDirectory>target/delombok</outputDirectory>
+									<sourceDirectory>src/main/java</sourceDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<failOnError>false</failOnError>
+							<doclint>none</doclint>
+						</configuration>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+								<configuration>
+									<sourcepath>
+										target/delombok;target/generated-sources
+									</sourcepath>
+								</configuration>
+							</execution>
+							<execution>
+								<id>aggregate</id>
+								<inherited>false</inherited>
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>aggregate-no-fork</goal>
+								</goals>
+								<configuration>
+									<reportOutputDirectory>${project.reporting.outputDirectory}</reportOutputDirectory>
+									<destDir>${project.version}/javadoc</destDir>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<inherited>false</inherited>
+						<configuration>
+							<finalName>${project.artifactId}</finalName>
+							<skipAssembly>${maven.javadoc.skip}</skipAssembly>
+							<descriptors>
+								<descriptor>assembly.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<executions>
+							<execution>
+								<id>make-assembly</id>
+								<!-- this is used for inheritance merges -->
+								<phase>package</phase>
+								<!-- bind to the packaging phase -->
+								<goals>
+									<goal>single</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>

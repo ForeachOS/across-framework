@@ -53,25 +53,27 @@
 	</scm>
 
 	<properties>
-		<!-- Maven/IDE specific -->
-		<java.version>1.8</java.version>
+		<revision>5.4-SNAPSHOT</revision>
+		<project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>1.8</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<!-- Overriden from spring-boot-dependencies -->
-		<maven-surefire-plugin.version>3.1.0</maven-surefire-plugin.version>
+		<maven-surefire-plugin.version>3.2.3</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.2.3</maven-failsafe-plugin.version>
+		<maven-assembly-plugin.version>3.6.0</maven-assembly-plugin.version>
+		<maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
 		<!-- https://github.com/liquibase/liquibase/issues/1639 -->
-		<liquibase.version>4.9.1</liquibase.version>
+		<liquibase.version>4.17.0</liquibase.version>
 		<!-- Across properties -->
-		<revision>5.3.0-SNAPSHOT</revision>
 		<maven.deploy.skip>false</maven.deploy.skip>
 		<foreach.common.version>1.1</foreach.common.version>
 		<commons-collections4.version>4.4</commons-collections4.version>
 		<testcontainers-bom.version>1.19.1</testcontainers-bom.version>
 		<liquibase-slf4j.version>4.1.0</liquibase-slf4j.version>
 		<commons-io.version>2.11.0</commons-io.version>
-		<!--oracle-ojdbc6.version>11.2.0</oracle-ojdbc6.version-->
 		<maven-gpg-plugin.version>3.1.0</maven-gpg-plugin.version>
 		<spring-framework.version>5.3.30</spring-framework.version>
 		<tomcat.version>9.0.82</tomcat.version>
@@ -143,15 +145,6 @@
 					</exclusion>
 				</exclusions>
 			</dependency>
-
-			<!-- Overrides for backwards compatibility -->
-<!--
-			<dependency>
-				<groupId>com.oracle</groupId>
-				<artifactId>ojdbc6</artifactId>
-				<version>${oracle-ojdbc6.version}</version>
-			</dependency>
--->
 
 			<!-- Foreach commons -->
 			<dependency>
@@ -282,7 +275,7 @@
 
 	<profiles>
 		<profile>
-			<id>sonatype</id>
+			<id>deploy</id>
 			<build>
 				<plugins>
 					<plugin>
@@ -296,11 +289,19 @@
 								<goals>
 									<goal>sign</goal>
 								</goals>
+								<configuration>
+									<keyname>${env.ACROSS_GPG_KEY_NAME}</keyname>
+									<passphrase>${env.ACROSS_GPG_PASSPHRASE}</passphrase>
+									<defaultKeyring>true</defaultKeyring>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+		<profile>
+			<id>sonatype</id>
 			<distributionManagement>
 				<snapshotRepository>
 					<id>sonatype</id>
@@ -316,24 +317,6 @@
 		</profile>
 		<profile>
 			<id>across</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-gpg-plugin</artifactId>
-						<version>${maven-gpg-plugin.version}</version>
-						<executions>
-							<execution>
-								<id>sign-artifacts</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>sign</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
 			<distributionManagement>
 				<repository>
 					<id>across</id>
@@ -348,4 +331,5 @@
 			</distributionManagement>
 		</profile>
 	</profiles>
+
 </project>

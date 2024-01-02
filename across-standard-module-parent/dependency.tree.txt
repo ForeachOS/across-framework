@@ -1,0 +1,3 @@
+com.foreach.across:across-standard-module-parent:pom:5.3-SNAPSHOT
++- org.projectlombok:lombok:jar:1.18.22:provided
+\- org.assertj:assertj-core:jar:3.18.1:test

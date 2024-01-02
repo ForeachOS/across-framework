@@ -1,0 +1,2 @@
+org.assertj:assertj-core:jar:3.18.1:test
+org.projectlombok:lombok:jar:1.18.22:provided
