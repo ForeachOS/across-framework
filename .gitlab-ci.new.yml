@@ -1,0 +1,233 @@
+# .gitlab-ci.yml extension enables completion support in IntelliJ
+
+variables:
+  MAVEN_REPO_DIR: $CI_PROJECT_DIR/.m2/repository
+
+  # `showDateTime` will show the passed time in milliseconds. You need to specify `--batch-mode` to make this work.
+  MAVEN_OPTS: >-
+    -Xmx256m
+    -Dhttps.protocols=TLSv1.2
+    -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository
+    -Dorg.slf4j.simpleLogger.showDateTime=true
+    -Djava.awt.headless=true
+
+  # As of Maven 3.3.0 instead of this you MAY define these options in `.mvn/maven.config` so the same config is used
+  # when running from the command line.
+  # As of Maven 3.6.1, the use of `--no-tranfer-progress` (or `-ntp`) suppresses download and upload messages. The use
+  # of the `Slf4jMavenTransferListener` is no longer necessary.
+  # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
+  MAVEN_CLI_OPTS: >-
+    --batch-mode
+    --errors
+    --fail-at-end
+    --show-version
+    --no-transfer-progress
+    --update-snapshots
+#    -DinstallAtEnd=true
+#    -DdeployAtEnd=true
+
+  # Specify the timezone - used by date tests
+  TZ: "Europe/Brussels"
+  # Specify a language - used by LocaleContextHolder
+  LANG: "en_US.UTF-8"
+
+  ORACLE_INIT_SQL: |
+    CREATE USER axt IDENTIFIED BY across_test;
+    GRANT CONNECT, RESOURCE TO axt;
+    GRANT CREATE SESSION, GRANT ANY PRIVILEGE TO axt;
+    GRANT UNLIMITED TABLESPACE TO axt;
+    GRANT SELECT ON SYS.DBA_RECYCLEBIN TO AXT;
+
+
+# I think this example workflow is exactly what we need:
+# https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
+# This runs:
+# - Branch pipelines when a merge request is not open for the branch.
+# - Merge request pipelines when a merge request is open for the branch.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+
+# This template uses the latest Maven 3 release, e.g., 3.8.6, and OpenJDK 8 (LTS)
+# for verifying and deploying images
+# Maven 3.8.x REQUIRES HTTPS repositories.
+# See https://maven.apache.org/docs/3.8.1/release-notes.html#how-to-fix-when-i-get-a-http-repository-blocked for more.
+image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-8
+
+# Cache downloaded dependencies and plugins between builds.
+# To keep cache across branches add 'key: "$CI_JOB_NAME"'
+# Be aware that `mvn deploy` will install the built jar into this repository. If you notice your cache size
+# increasing, consider adding `-Dmaven.install.skip=true` to `MAVEN_OPTS` or in `.mvn/maven.config`
+cache:
+  paths:
+    - $MAVEN_REPO_DIR
+
+after_script:
+  - rm -rf $MAVEN_REPO_DIR/com/foreach # Don't cache this
+
+#whatsmyip:
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/curlimages/curl:latest
+#  stage: .pre
+#  script:
+#    - env | grep -i proxy || echo "Nothing found"
+#    - curl --silent 'https://api.ipify.org?format=json'
+
+#curl:google:
+#  script:
+#    - curl --connect-timeout 10 https://www.google.com
+#    - echo "Success Google"
+
+#curl:nexus-foreach:
+#  script:
+#    - curl --connect-timeout 10 https://repository.foreach.be/nexus/repository/public/archetype-catalog.xml
+#    - echo "Success Nexus Foreach"
+# .gitlab-ci.yml extension enables completion support in IntelliJ
+
+# TODO: For merge requests do not `deploy` but only run `verify`.
+# See https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
+# TODO: find a solution for test-containers to not download from docker.io
+.verify:
+  stage: test
+  script:
+    # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
+    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf || echo "No snapshots to delete"
+    - 'mvn $MAVEN_CLI_OPTS verify'
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - '**/target/surefire-reports/TEST-*.xml'
+#  except:
+#    variables:
+#      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+verify:jdk8:
+  extends:
+    - .verify
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-8
+
+#verify:jdk11:
+#  extends:
+#    - .verify
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-11
+#
+#verify:jdk17:
+#  extends:
+#    - .verify
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-17
+#
+#verify:jdk21:
+#  extends:
+#    - .verify
+#  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/maven:3.9-eclipse-temurin-21
+# .gitlab-ci.yml extension enables completion support in IntelliJ
+
+.itest:
+  stage: test
+  script:
+    # - 'mvn $MAVEN_CLI_OPTS dependency:purge-local-repository -DmanualInclude=com.foreach -DreResolve=false'
+    - find $CI_PROJECT_DIR/.m2/repository/com/foreach/ -type d -name "*-SNAPSHOT" | xargs rm -rf || echo "No snapshots to delete"
+    - 'mvn $MAVEN_CLI_OPTS test-compile failsafe:integration-test failsafe:verify -DacrossTest.datasource="$ACROSS_TEST_DATASOURCE"'
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - '**/target/failsafe-reports/TEST-*.xml'
+
+itest:h2:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: h2
+
+itest:mssql:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: mssql
+  services:
+    - name: mcr.microsoft.com/mssql/server:2017-latest
+      alias: 'mssql'
+      variables:
+        ACCEPT_EULA: Y
+        MSSQL_SA_PASSWORD: across_tEst
+        MSSQL_PID: Developer
+
+itest:mysql:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: mysql
+  services:
+    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/mysql:8.0'
+      alias: mysql
+      variables:
+        MYSQL_ROOT_PASSWORD: ''
+        MYSQL_DATABASE: axt
+        MYSQL_USER: axt
+        MYSQL_PASSWORD: across_test
+        MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+
+itest:oracle:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: oracle
+  services:
+    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/gvenzl/oracle-xe:18.4.0-slim' # This what testcontainers 1.18.1 uses
+      alias: 'oracle'
+      variables:
+        ORACLE_ALLOW_REMOTE: 'true'
+        ORACLE_ENABLE_XDB: 'true'
+        # IT IS SAID THAT THIS IS MORE PERFORMANT IN DOCKER
+        ORACLE_DISABLE_ASYNCH_IO: 'true'
+        ORACLE_PASSWORD: across_test
+      # You cannot mount volumes in a service container, this is a workaround for that:
+      # Solution inspired by: https://stackoverflow.com/questions/72201392/mounting-a-volume-for-a-gitlab-service
+      # Doesn't work: the /docker-entrypoint-initdb.d directory doesn't exist in the image, and creating it gives:
+      #   mkdir: cannot create directory '/docker-entrypoint-initdb.d/': Permission denied
+      # However: /container-entrypoint-initdb.d does exist! See: https://github.com/gvenzl/oci-oracle-xe/issues/108
+      # entrypoint: ['/bin/bash', "-c", 'echo "c" > /container-entrypoint-initdb.d/init.sql && container-entrypoint.sh']
+      entrypoint:
+        - '/bin/bash'
+        - '-c'
+        - |
+          echo "$ORACLE_INIT_SQL" > /container-entrypoint-initdb.d/init.sql
+          cat /container-entrypoint-initdb.d/*
+          wc -l /container-entrypoint-initdb.d/*
+          container-entrypoint.sh
+
+itest:postgresql:
+  extends:
+    - .itest
+  variables:
+    ACROSS_TEST_DATASOURCE: postgres
+  services:
+    - name: '${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/postgres:14.8'
+      alias: postgres
+      variables:
+        POSTGRES_DB: axt
+        POSTGRES_USER: axt
+        POSTGRES_PASSWORD: across_test
+# .gitlab-ci.yml extension enables completion support in IntelliJ
+
+deploy:foreach:
+  stage: deploy
+  before_script:
+    - apt-get update
+    - apt-get -y install gpg
+    - gpg --pinentry-mode loopback --passphrase $ACROSS_GPG_PASSPHRASE --import $ACROSS_GPG_PRIVATE_KEY
+    - gpg --list-keys
+  script:
+    - mvn $MAVEN_CLI_OPTS --settings ci_settings.xml --activate-profiles deploy,across deploy -DskipTests
+#  only:
+#    variables:
+#      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+#
+
+# TODO: on push of a tag, run a deploy to Sonatype
+# Disadvantage is that that will run all integration tests again, unless we want disable those on a tag push
