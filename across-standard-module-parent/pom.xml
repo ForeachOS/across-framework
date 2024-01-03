@@ -54,7 +54,7 @@
     </properties>
 
     <scm>
-        <url>https://bitbucket.org/beforeach/across</url>
+        <url>https://github.com/foreachos/across-framework</url>
     </scm>
 
     <dependencies>
