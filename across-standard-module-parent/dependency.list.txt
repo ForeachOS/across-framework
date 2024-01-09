@@ -1,2 +1,2 @@
-org.assertj:assertj-core:jar:3.22.0:test
-org.projectlombok:lombok:jar:1.18.30:provided
+org.assertj:assertj-core:jar:3.21.0:test
+org.projectlombok:lombok:jar:1.18.26:provided
