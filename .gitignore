@@ -7,6 +7,7 @@ target
 .idea/template/template_variable_settings.xml
 *.iml
 pom.xml.versionsBackup
+versions.properties
 .flattened-pom.xml
 *~
 

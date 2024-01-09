@@ -29,7 +29,7 @@
 	<version>${revision}</version>
 	<packaging>pom</packaging>
 
-	<name>Across Base</name>
+	<name>${project.groupId}:${project.artifactId}</name>
 	<description>
 		Across is a Java framework that aims to facilitate module based development for Java (web) applications.
 		It builds heavily on Spring framework and allows defining a module consisting of a number of classes and
